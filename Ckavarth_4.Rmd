@@ -1,0 +1,249 @@
+---
+title: 'Assignment: Module 4'
+author: "Chaitanya Kavarthapu"
+date: "2024-09-10"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction
+
+```{r}
+
+# Weigelt Corporation has excess production capacity across three plants and is tasked with producing a new product in three different sizes: Large, Medium, and Small. The goal is to determine the optimal production quantities for each product at each plant to **maximize the company's profit**. 
+
+# To solve this problem, we use **linear programming (LP)**, a mathematical optimization technique. The objective function, which represents the total profit, is maximized by determining the optimal number of large, medium, and small products produced at each plant, while adhering to all constraints.
+
+```
+# Problem Formulation
+
+# 1. **Formulate a problem that can be solved using R libraries**: The problem has been clearly defined with an objective function, decision variables, and constraints. The problem is then translated into a mathematical model, which is solvable using R's optimization libraries.
+
+
+## Decision Variables
+
+Let:
+- \( x_{11} \) = Number of large products produced at Plant 1.
+- \( x_{12} \) = Number of medium products produced at Plant 1.
+- \( x_{13} \) = Number of small products produced at Plant 1.
+- \( x_{21} \) = Number of large products produced at Plant 2.
+- \( x_{22} \) = Number of medium products produced at Plant 2.
+- \( x_{23} \) = Number of small products produced at Plant 2.
+- \( x_{31} \) = Number of large products produced at Plant 3.
+- \( x_{32} \) = Number of medium products produced at Plant 3.
+- \( x_{33} \) = Number of small products produced at Plant 3.
+
+## Objective Function
+
+The objective is to maximize profit:
+
+\[
+\text{Maximize } Z = 420(x_{11} + x_{21} + x_{31}) + 360(x_{12} + x_{22} + x_{32}) + 300(x_{13} + x_{23} + x_{33})
+\]
+
+Where:
+- \( 420 \) is the profit per large product.
+- \( 360 \) is the profit per medium product.
+- \( 300 \) is the profit per small product.
+
+## Constraints
+
+1. **Capacity constraints**:
+    \[
+    x_{11} + x_{12} + x_{13} \leq 750 \quad \text{(Plant 1)}
+    \]
+    \[
+    x_{21} + x_{22} + x_{23} \leq 900 \quad \text{(Plant 2)}
+    \]
+    \[
+    x_{31} + x_{32} + x_{33} \leq 450 \quad \text{(Plant 3)}
+    \]
+
+2. **Storage constraints**:
+    \[
+    20x_{11} + 15x_{12} + 12x_{13} \leq 13000 \quad \text{(Plant 1 storage)}
+    \]
+    \[
+    20x_{21} + 15x_{22} + 12x_{23} \leq 12000 \quad \text{(Plant 2 storage)}
+    \]
+    \[
+    20x_{31} + 15x_{32} + 12x_{33} \leq 5000 \quad \text{(Plant 3 storage)}
+    \]
+
+3. **Sales forecast constraints**:
+    \[
+    x_{11} + x_{21} + x_{31} \leq 900 \quad \text{(Large products)}
+    \]
+    \[
+    x_{12} + x_{22} + x_{32} \leq 1200 \quad \text{(Medium products)}
+    \]
+    \[
+    x_{13} + x_{23} + x_{33} \leq 750 \quad \text{(Small products)}
+    \]
+
+4. **Non-negativity constraint**:
+    \[
+    x_{ij} \geq 0 \quad \forall i,j
+    \]
+
+
+# 2. **Represent a problem in a manner that can be solved using R libraries**: Using R's `lpSolve` library, the objective function and constraints were represented in matrix form, making it possible to pass the model into the optimization routine.
+
+```{r}
+# load the lpSolve package and 
+library(lpSolve) # For LPSolve
+library(ggplot2) # For Data Visualization
+# Coefficients of the objective function
+objective <- c(420, 360, 300, 420, 360, 300, 420, 360, 300)
+
+# Constraints matrix
+constraints <- matrix(c(
+  1, 1, 1, 0, 0, 0, 0, 0, 0,  # Plant 1 capacity
+  0, 0, 0, 1, 1, 1, 0, 0, 0,  # Plant 2 capacity
+  0, 0, 0, 0, 0, 0, 1, 1, 1,  # Plant 3 capacity
+  20, 15, 12, 0, 0, 0, 0, 0, 0,  # Plant 1 storage
+  0, 0, 0, 20, 15, 12, 0, 0, 0,  # Plant 2 storage
+  0, 0, 0, 0, 0, 0, 20, 15, 12,  # Plant 3 storage
+  1, 0, 0, 1, 0, 0, 1, 0, 0,  # Sales for large products
+  0, 1, 0, 0, 1, 0, 0, 1, 0,  # Sales for medium products
+  0, 0, 1, 0, 0, 1, 0, 0, 1   # Sales for small products
+), nrow = 9, byrow = TRUE)
+
+# Right-hand side of the constraints
+rhs <- c(750, 900, 450, 13000, 12000, 5000, 900, 1200, 750)
+
+# Direction of the constraints
+constraints_dir <- c("<=", "<=", "<=", "<=", "<=", "<=", "<=", "<=", "<=")
+
+# Solve the LP
+solution <- lp("max", objective, constraints, constraints_dir, rhs)
+```
+
+
+```{r}
+# Output the solution
+print(solution$solution)
+cat("Maximum Profit:", solution$objval, "\n")
+```
+
+# 3. **Interpret the output from optimization routines**: After solving the LP, we interpret the output, such as the optimal production plan and maximum profit, as produced by the `lpSolve` function.
+
+```{r}
+# Optimal solution obtained from lpSolve
+large_plant1 <- solution$solution[1]
+medium_plant1 <- solution$solution[2]
+small_plant1 <- solution$solution[3]
+large_plant2 <- solution$solution[4]
+medium_plant2 <- solution$solution[5]
+small_plant2 <- solution$solution[6]
+large_plant3 <- solution$solution[7]
+medium_plant3 <- solution$solution[8]
+small_plant3 <- solution$solution[9]
+max_profit <- solution$objval
+
+# Print the formatted output for Problem  (Weigelt Corporation)
+cat("\n=== Output for Problem  (Weigelt Corporation) ===\n")
+
+cat("\nPlant 1:\n")
+cat("Large products produced: ", large_plant1, "\n")
+cat("Medium products produced: ", medium_plant1, "\n")
+cat("Small products produced: ", small_plant1, "\n")
+
+cat("\nPlant 2:\n")
+cat("Large products produced: ", large_plant2, "\n")
+cat("Medium products produced: ", medium_plant2, "\n")
+cat("Small products produced: ", small_plant2, "\n")
+
+cat("\nPlant 3:\n")
+cat("Large products produced: ", large_plant3, "\n")
+cat("Medium products produced: ", medium_plant3, "\n")
+cat("Small products produced: ", small_plant3, "\n")
+
+# Print the maximum profit
+cat("\nMaximum Profit: $", round(max_profit, 2), "\n")
+```
+
+```{r}
+# === Output for Problem  (Weigelt Corporation) ===
+# Plant 1:
+# Large products produced:  350 
+# Medium products produced:  400 
+# Small products produced:  0 
+# 
+# Plant 2:
+# Large products produced:  0 
+# Medium products produced:  400 
+# Small products produced:  500 
+# 
+# Plant 3:
+# Large products produced:  0 
+# Medium products produced:  133.3333 
+# Small products produced:  250 
+# 
+# Maximum Profit: $ 708000 
+```
+
+# Data Visualization:
+# # 4. **Interpret the output from a LP solution**: The results obtained from R are analyzed and explained, showing how the production of each product size in each plant contributes to maximizing the company's profit, while satisfying all the problem constraints.
+
+```{r}
+# Loading the Package.
+library(ggplot2) # For Data Visualization.
+
+# Create a data frame with the production values
+production_data <- data.frame(
+  Plant = rep(c("Plant 1", "Plant 2", "Plant 3"), each = 3),
+  Product = factor(rep(c("Large", "Medium", "Small"), times = 3)),
+  Quantity = c(large_plant1, medium_plant1, small_plant1,
+               large_plant2, medium_plant2, small_plant2,
+               large_plant3, medium_plant3, small_plant3)
+)
+
+# Plot a grouped bar chart
+ggplot(production_data, aes(x = Plant, y = Quantity, fill = Product)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Production Quantities by Plant and Product Type",
+       x = "Plant", y = "Quantity Produced") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3")
+```
+
+## Summary of the Optimal Production Plan for Weigelt Corporation:
+
+```{r}
+# The Weigelt Corporation needs to optimize its production of three product sizes (Large, Medium, and Small) across three plants. The goal is to maximize profits while adhering to capacity, storage, and sales constraints. The solution, derived using linear programming, provides the optimal production quantities for each plant and the maximum possible profit.
+
+# 1. **Plant 1** will produce 350 large products and 400 medium products. No small products will be produced at this plant.
+# 2. **Plant 2** will focus on medium and small products, producing 400 medium products and 500 small products.
+# 3. **Plant 3** will primarily produce 133.33 medium products and 250 small products, with no large product production.
+
+# The total maximum profit from this production plan is **$708,000**.
+```
+
+## Key Findings:
+
+```{r}
+# 1. **Balanced Production**: The optimal production strategy efficiently allocates large and medium products to **Plant 1**, medium and small products to **Plant 2**, and a mixture of medium and small products to **Plant 3**.
+# 2. **Profit Maximization**: The solution maximizes the profit at **$708,000**, utilizing the available capacity and storage constraints at each plant.
+# 3. **Specialized Production by Plant**: 
+#   - **Plant 1** focuses on producing large and medium products.
+#   - **Plant 2** specializes in producing medium and small products.
+#   - **Plant 3** contributes to producing medium and small products in smaller quantities.
+# 4. **No Idle Capacity**: All available production capacity is efficiently utilized across the plants to maximize profit, while ensuring no plant is left idle.
+# 5. **Sales Forecast Alignment**: The production plan is aligned with the sales forecasts, ensuring that no excess inventory is produced beyond the demand forecasts.
+```
+
+## Conclusion:
+
+```{r}
+# The linear programming solution provides a clear production plan for Weigelt Corporation, helping it to maximize profits while maintaining efficient utilization of its production capacity and storage constraints. By allocating large, medium, and small product production optimally across the three plants, the company can achieve a maximum profit of **$708,000**. The strategy ensures that resources are allocated efficiently without exceeding the capacity or storage limitations at each plant. 
+
+# Additionally, the plan adheres to the sales forecasts, ensuring the company does not overproduce or underutilize its available resources. This approach helps the company optimize its profitability while minimizing idle capacity and production inefficiencies.
+```
+
